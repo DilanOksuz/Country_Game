@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create User</title>
+  </head>
+  <body>
+    <h3>Kullanıcı Ekleme</h3>
+
+    <form id="createUserForm" class="Create_User_Form" autocomplete="off">
+      <label>
+        Kullanıcı Adı:
+        <input
+          name="user_name"
+          placeholder="Kullanıcı Adını Giriniz:"
+          required
+          autocomplete="username"
+        />
+      </label>
+
+      <div class="password_div">
+        <label>
+          Şifre Giriniz:
+          <input
+            type="password"
+            name="Users_Password"
+            id="Users_Password"
+            placeholder="Lütfen Şifrenizi Giriniz:"
+            required
+            autocomplete="new-password"
+          />
+          <button type="button" class="pw-toggle" data-target="Users_Password">
+            Göster
+          </button>
+        </label>
+
+        <label>
+          Şifreyi Tekrar Giriniz:
+          <input
+            type="password"
+            name="Users_Password_Comfirm"
+            id="Users_Password_Comfirm"
+            placeholder="Lütfen Şifrenizi Tekrar Giriniz:"
+            required
+            autocomplete="new-password"
+          />
+          <button
+            type="button"
+            class="pw-toggle"
+            data-target="Users_Password_Comfirm"
+          >
+            Göster
+          </button>
+        </label>
+      </div>
+
+      <button type="submit">KAYDET</button>
+      <button type="button" id="backBtn">GERİ</button>
+    </form>
+
+    <script src="create_user.js"></script>
+  </body>
+</html>

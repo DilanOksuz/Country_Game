@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kullanıcı Seç</title>
+  </head>
+  <body>
+    <h3>Kullanıcı Seç</h3>
+
+    <!-- Arama -->
+    <label>
+      Kullanıcı Ara:
+      <input
+        id="searchInput"
+        type="text"
+        placeholder="İsim yazın..."
+        autocomplete="off"
+      />
+    </label>
+
+    <!-- Kullanıcı listesi -->
+    <ul id="userList"></ul>
+
+    <!-- Giriş bölümü (seçim yapınca etkinleşir) -->
+    <form id="loginForm" autocomplete="off">
+      <p>Seçilen kullanıcı: <strong id="selectedUserLabel">—</strong></p>
+
+      <label>
+        Şifre:
+        <input
+          type="password"
+          id="passwordInput"
+          placeholder="Şifre"
+          required
+        />
+        <button type="button" id="togglePwBtn">Göster</button>
+      </label>
+
+      <div>
+        <button type="submit" id="loginBtn" disabled>Giriş Yap</button>
+        <button type="button" id="backBtn">Geri</button>
+      </div>
+    </form>
+
+    <p id="emptyState" hidden>Henüz kayıtlı kullanıcı bulunamadı.</p>
+
+    <script src="select_user.js"></script>
+  </body>
+</html>
