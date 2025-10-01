@@ -12,13 +12,14 @@ function readUsers() {
     return [];
   }
 }
-
+//salt eklememizin amacı şu ki, iki kullanıcı aynı parolayı secerlerse aynı hash uygulanıp da aynı şekilde datasette saklanmasın.
 function generateSalt(length = 16) {
   const arr = new Uint8Array(length);
   crypto.getRandomValues(arr);
   return Array.from(arr, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+//asyn:asenkron calısıp promise dondurur.
 async function hashPassword(password, salt) {
   const enc = new TextEncoder();
   const data = enc.encode(password + salt);

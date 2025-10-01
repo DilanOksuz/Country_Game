@@ -1,9 +1,6 @@
-// === Ayarlar ===
 const STORAGE_KEY = "users";
-// Giriş başarılı olunca yönlenecek sayfa:
-const REDIRECT_URL = "Home_Page.html"; // profil/oyun sayfası için istediğin dosya adını koyabilirsin
+const REDIRECT_URL = "Home_Page.html";
 
-// === Yardımcılar ===
 function readUsers() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
@@ -13,7 +10,6 @@ function readUsers() {
   }
 }
 
-// create_user.js ile aynı şekilde: password + salt
 async function hashPassword(password, salt) {
   const enc = new TextEncoder();
   const data = enc.encode(password + salt);
@@ -23,13 +19,11 @@ async function hashPassword(password, salt) {
     .join("");
 }
 
-// case-insensitive kullanıcı bul
 function findUserByName(users, name) {
   const n = String(name).trim().toLowerCase();
   return users.find((u) => u.username.toLowerCase() === n) || null;
 }
 
-// === UI Referansları ===
 const searchInput = document.getElementById("searchInput");
 const userList = document.getElementById("userList");
 const emptyState = document.getElementById("emptyState");
@@ -41,12 +35,10 @@ const togglePwBtn = document.getElementById("togglePwBtn");
 const loginBtn = document.getElementById("loginBtn");
 const backBtn = document.getElementById("backBtn");
 
-// === Durum ===
 let allUsers = [];
 let filteredUsers = [];
 let selectedUsername = null;
 
-// === Listeyi çiz ===
 function renderList(list) {
   userList.innerHTML = "";
 
@@ -76,7 +68,6 @@ function renderList(list) {
   });
 }
 
-// === Filtrele ===
 function applyFilter() {
   const q = searchInput.value.trim().toLowerCase();
   if (!q) {
@@ -89,7 +80,6 @@ function applyFilter() {
   renderList(filteredUsers);
 }
 
-// === Şifre göster/gizle ===
 togglePwBtn.addEventListener("click", () => {
   if (passwordInput.type === "password") {
     passwordInput.type = "text";
@@ -102,12 +92,10 @@ togglePwBtn.addEventListener("click", () => {
   }
 });
 
-// === Geri ===
 backBtn.addEventListener("click", () => {
   window.location.href = "Login_Page.html";
 });
 
-// === Giriş ===
 loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -127,7 +115,6 @@ loginForm.addEventListener("submit", async (e) => {
     return;
   }
 
-  // hash karşılaştır
   const hashed = await hashPassword(pwd, user.salt);
   if (hashed !== user.password) {
     alert("Şifre hatalı.");
@@ -135,16 +122,13 @@ loginForm.addEventListener("submit", async (e) => {
     return;
   }
 
-  // Oturum bilgisi kaydedebilirsin
   localStorage.setItem("current_user", user.username);
 
-  // yönlendirme
   const url = new URL(REDIRECT_URL, window.location.href);
   url.searchParams.set("user", user.username);
   window.location.href = url.toString();
 });
 
-// === Başlat ===
 (function init() {
   allUsers = readUsers();
   filteredUsers = [...allUsers];
