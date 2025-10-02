@@ -1,25 +1,58 @@
 const STORAGE_KEY = "users";
 
+// ---- Stats şablonu ----
+function defaultStats() {
+  return {
+    best: { easy: 0, medium: 0, hard: 0 },
+    gamesPlayed: { easy: 0, medium: 0, hard: 0 },
+  };
+}
+
+// ---- Güvenli kayıt/okuma ----
 function saveUsers(users) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
 }
 
 function readUsers() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    const arr = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    // Migrasyon: stats yoksa ekle
+    const fixed = arr.map((u) => normalizeUserStats(u));
+    return fixed;
   } catch {
     localStorage.removeItem(STORAGE_KEY);
     return [];
   }
 }
-//salt eklememizin amacı şu ki, iki kullanıcı aynı parolayı secerlerse aynı hash uygulanıp da aynı şekilde datasette saklanmasın.
+
+function normalizeUserStats(u) {
+  const s = u.stats || {};
+  const best = s.best || {};
+  const gp = s.gamesPlayed || {};
+  return {
+    ...u,
+    stats: {
+      best: {
+        easy: Number.isFinite(best.easy) ? best.easy : 0,
+        medium: Number.isFinite(best.medium) ? best.medium : 0,
+        hard: Number.isFinite(best.hard) ? best.hard : 0,
+      },
+      gamesPlayed: {
+        easy: Number.isFinite(gp.easy) ? gp.easy : 0,
+        medium: Number.isFinite(gp.medium) ? gp.medium : 0,
+        hard: Number.isFinite(gp.hard) ? gp.hard : 0,
+      },
+    },
+  };
+}
+
+// ---- Salt & Hash ----
 function generateSalt(length = 16) {
   const arr = new Uint8Array(length);
   crypto.getRandomValues(arr);
   return Array.from(arr, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-//asyn:asenkron calısıp promise dondurur.
 async function hashPassword(password, salt) {
   const enc = new TextEncoder();
   const data = enc.encode(password + salt);
@@ -29,6 +62,7 @@ async function hashPassword(password, salt) {
     .join("");
 }
 
+// ---- UI bağlama ----
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("createUserForm");
   const backBtn = document.getElementById("backBtn");
@@ -39,7 +73,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Göster/Gizle butonları
   document.querySelectorAll(".pw-toggle").forEach((btn) => {
     btn.addEventListener("click", () => {
       const targetId = btn.getAttribute("data-target");
@@ -75,14 +108,12 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Lütfen tüm alanları doldurun!");
       return;
     }
-
     if (password !== passwordConfirm) {
       alert("Şifreler eşleşmiyor!");
       return;
     }
 
     const users = readUsers();
-
     const exists = users.some(
       (u) => u.username.toLowerCase() === username.toLowerCase()
     );
@@ -99,7 +130,9 @@ document.addEventListener("DOMContentLoaded", () => {
       password: hashedPassword,
       salt,
       createdAt: new Date().toISOString(),
+      stats: defaultStats(), // <<< ÖNEMLİ: mod-bazlı skorlar burada başlatılıyor
     });
+
     saveUsers(users);
 
     usernameEl.value = "";

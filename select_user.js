@@ -1,9 +1,47 @@
 const STORAGE_KEY = "users";
 const REDIRECT_URL = "Home_Page.html";
 
+// ---- Stats şablonu & migrasyon yardımcıları ----
+function defaultStats() {
+  return {
+    best: { easy: 0, medium: 0, hard: 0 },
+    gamesPlayed: { easy: 0, medium: 0, hard: 0 },
+  };
+}
+
+function normalizeUserStats(u) {
+  const s = u.stats || {};
+  const best = s.best || {};
+  const gp = s.gamesPlayed || {};
+  return {
+    ...u,
+    stats: {
+      best: {
+        easy: Number.isFinite(best.easy) ? best.easy : 0,
+        medium: Number.isFinite(best.medium) ? best.medium : 0,
+        hard: Number.isFinite(best.hard) ? best.hard : 0,
+      },
+      gamesPlayed: {
+        easy: Number.isFinite(gp.easy) ? gp.easy : 0,
+        medium: Number.isFinite(gp.medium) ? gp.medium : 0,
+        hard: Number.isFinite(gp.hard) ? gp.hard : 0,
+      },
+    },
+  };
+}
+
+function saveUsers(users) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+}
+
 function readUsers() {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    // Migrasyon: stats eksikse tamamla
+    const fixed = raw.map((u) => normalizeUserStats(u));
+    // (İsteğe bağlı) geri yaz: veriyi normalize halde saklamak istersen
+    saveUsers(fixed);
+    return fixed;
   } catch {
     localStorage.removeItem(STORAGE_KEY);
     return [];
@@ -122,12 +160,39 @@ loginForm.addEventListener("submit", async (e) => {
     return;
   }
 
+  // Aktif kullanıcıyı kaydet
   localStorage.setItem("current_user", user.username);
 
   const url = new URL(REDIRECT_URL, window.location.href);
   url.searchParams.set("user", user.username);
   window.location.href = url.toString();
 });
+
+// ---- Oyun bittiğinde çağıracağın yardımcı: mod-bazlı en iyi skor güncellemesi ----
+// Bunu Game sayfana da kopyalayıp, turun sonunda çağıracaksın:
+//   updateBestScore(currentUsername, "easy"|"medium"|"hard", totalScore);
+function updateBestScore(username, mode, score) {
+  const valid = ["easy", "medium", "hard"];
+  if (!valid.includes(mode)) throw new Error("Geçersiz mod: " + mode);
+
+  const users = readUsers();
+  const idx = users.findIndex(
+    (u) => u.username.toLowerCase() === String(username).toLowerCase()
+  );
+  if (idx === -1) return false;
+
+  const u = normalizeUserStats(users[idx]); // stats garanti olsun
+  // En iyi skor
+  if (typeof score === "number" && score > (u.stats.best[mode] ?? 0)) {
+    u.stats.best[mode] = score;
+  }
+  // Oynanan oyun sayısı (mod-bazlı)
+  u.stats.gamesPlayed[mode] = (u.stats.gamesPlayed[mode] ?? 0) + 1;
+
+  users[idx] = u;
+  saveUsers(users);
+  return true;
+}
 
 (function init() {
   allUsers = readUsers();

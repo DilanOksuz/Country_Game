@@ -1,18 +1,100 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Game Page</title>
   </head>
   <body>
-    <h1>Ülke bayrakları</h1>
-    <div id="grid"></div>
-    <div id="flags"></div>
-    <button id="startBtn">BASLA</button>
-    <button id="nextBtn" disabled>İLERİ</button>
-    <button id="restartBtn">YENİDEN BASLAT</button>
-    <button onclick="window.location.href=`Login_Page.html`">GERİ</button>
+    <h1>Bayrak Tahmin Oyunu</h1>
+
+    <div>
+      <label>
+        Zorluk:
+        <select id="mode">
+          <option value="choice">Zorluk seviyesi seçin</option>
+          <option value="easy">Kolay</option>
+          <option value="medium" selected>Orta</option>
+          <option value="hard">Zor</option>
+        </select>
+      </label>
+      <button id="startBtn" disabled>BAŞLA</button>
+      <button id="restartBtn" disabled>YENİDEN BAŞLAT</button>
+      <button onclick="window.location.href='Login_Page.html'">GERİ</button>
+    </div>
+
+    <hr />
+
+    <div id="status">
+      <span id="progress">0 / 10</span> — Skor: <span id="score">0</span>
+    </div>
+
+    <!-- Oyun alanı: sol soru, sağda doğru cevap kartı -->
+    <div id="playArea" style="display: none">
+      <div style="display: flex; gap: 24px; align-items: flex-start">
+        <!-- SOL SÜTUN (Soru) -->
+        <div id="questionCol">
+          <div id="flagArea">
+            <img id="flagImg" alt="Bayrak" width="220" />
+          </div>
+
+          <form id="answerForm" autocomplete="off" style="margin-top: 8px">
+            <div>
+              <label
+                >Ülke Adı:
+                <input id="guessName" placeholder="ör. Türkiye" />
+              </label>
+            </div>
+            <div>
+              <label
+                >Başkent:
+                <input id="guessCapital" placeholder="ör. Ankara" />
+              </label>
+            </div>
+            <div>
+              <label
+                >Nüfus:
+                <input id="guessPopulation" placeholder="ör. 85000000" />
+              </label>
+            </div>
+
+            <div style="margin-top: 8px">
+              <button id="submitBtn" type="submit" disabled>Gönder</button>
+              <button id="nextBtn" type="button" disabled>Sonraki</button>
+            </div>
+          </form>
+
+          <div id="feedback" style="margin-top: 8px"></div>
+        </div>
+
+        <!-- SAĞ SÜTUN (Doğru cevap kartı) -->
+        <div id="answerCol">
+          <div
+            id="correctCard"
+            style="
+              border: 1px solid #ccc;
+              padding: 8px;
+              width: 260px;
+              display: none;
+            "
+          >
+            <img
+              id="correctFlag"
+              alt="Doğru Bayrak"
+              width="220"
+              style="display: block; margin-bottom: 8px"
+            />
+            <div><strong>Ülke:</strong> <span id="correctName"></span></div>
+            <div>
+              <strong>Başkent:</strong> <span id="correctCapital"></span>
+            </div>
+            <div>
+              <strong>Nüfus:</strong> <span id="correctPopulation"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <script src="game.js"></script>
   </body>
