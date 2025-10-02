@@ -3,22 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Game Page</title>
+    <title>Bayrak Tahmin Oyunu</title>
   </head>
   <body>
     <h1>Bayrak Tahmin Oyunu</h1>
 
+    <!-- Zorluk butonları + başlat -->
     <div>
-      <label>
-        Zorluk:
-        <select id="mode">
-          <option value="choice">Zorluk seviyesi seçin</option>
-          <option value="easy">Kolay</option>
-          <option value="medium" selected>Orta</option>
-          <option value="hard">Zor</option>
-        </select>
-      </label>
-      <button id="startBtn" disabled>BAŞLA</button>
+      <div id="modeButtons">
+        <button class="mode-btn" data-mode="easy">Kolay</button>
+        <button class="mode-btn" data-mode="medium">Orta</button>
+        <button class="mode-btn" data-mode="hard">Zor</button>
+      </div>
+
+      <button id="startBtn">BAŞLA</button>
       <button id="restartBtn" disabled>YENİDEN BAŞLAT</button>
       <button onclick="window.location.href='Login_Page.html'">GERİ</button>
     </div>
@@ -29,9 +27,16 @@
       <span id="progress">0 / 10</span> — Skor: <span id="score">0</span>
     </div>
 
-    <!-- Oyun alanı: sol soru, sağda doğru cevap kartı -->
+    <!-- Oyun alanı -->
     <div id="playArea" style="display: none">
-      <div style="display: flex; gap: 24px; align-items: flex-start">
+      <div
+        style="
+          display: flex;
+          gap: 24px;
+          align-items: flex-start;
+          flex-wrap: wrap;
+        "
+      >
         <!-- SOL SÜTUN (Soru) -->
         <div id="questionCol">
           <div id="flagArea">
@@ -94,6 +99,17 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Son 10 Oyun (kullanıcıya özel) -->
+    <div id="last10Section" style="display: none; margin-top: 16px">
+      <h2>Son 10 Oyun</h2>
+      <div id="last10"></div>
+      <p>
+        <button onclick="window.location.href='Public_ScoreBoard.html'">
+          Global Scoreboard
+        </button>
+      </p>
     </div>
 
     <script src="game.js"></script>

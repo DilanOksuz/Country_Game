@@ -1,9 +1,16 @@
+// ============================
+// Bayrak Tahmin Oyunu - game.js
+// ============================
+
 const LIST_URL =
   "https://restcountries.com/v3.1/all?fields=cca2,name,capital,population,flags";
 
 const LS_USERS = "users";
 const LS_USER_GAMES_PREFIX = "cg:games:"; // cg:games:<username>
+const LS_LAST_GAME = "cg:lastGameCountries"; // Son seçilen 10 ülke
+const LS_LAST_MODE = "cg:lastMode"; // son seçilen zorluk (buton için)
 
+// ---------- LocalStorage yardımcıları ----------
 function readJSON(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -16,6 +23,7 @@ function writeJSON(key, val) {
   localStorage.setItem(key, JSON.stringify(val));
 }
 
+// ---------- Kullanıcı istatistikleri ----------
 function defaultStats() {
   return {
     best: { easy: 0, medium: 0, hard: 0 },
@@ -55,11 +63,11 @@ function findUserByName(users, name) {
   const n = String(name).trim().toLowerCase();
   return users.find((u) => u.username.toLowerCase() === n) || null;
 }
-
 function getCurrentUsername() {
   return localStorage.getItem("current_user") || null;
 }
 
+// ---------- Oyun geçmişi ----------
 function readUserGames(username) {
   return readJSON(LS_USER_GAMES_PREFIX + username, []);
 }
@@ -67,6 +75,7 @@ function saveUserGames(username, games) {
   writeJSON(LS_USER_GAMES_PREFIX + username, games);
 }
 
+// ---------- Metin/puan yardımcıları ----------
 function normalizeText(s) {
   if (!s) return "";
   return s
@@ -97,18 +106,64 @@ function sampleK(arr, k) {
   }
   return a.slice(0, Math.min(k, a.length));
 }
+
+// ---------- Nüfusa göre zorluk eşikleri ----------
+const POP_EASY_MIN = 50_000_000; // Kolay: ≥ 50M
+const POP_MED_MIN = 1_000_000; // Orta: 1M – 49,999,999
+// Zor: < 1M
+
 function pick10ByDifficulty(countries, mode) {
-  const sorted = [...countries].sort((a, b) => a.population - b.population);
-  const n = sorted.length;
-  const third = Math.max(1, Math.floor(n / 3));
-  let pool;
-  if (mode === "easy") pool = sorted.slice(-third);
-  else if (mode === "hard") pool = sorted.slice(0, third);
-  else pool = sorted;
-  return sampleK(pool, 10);
+  // Geçersiz/0 nüfusluları süz
+  const valid = countries.filter(
+    (c) => Number.isFinite(c.population) && c.population > 0
+  );
+
+  const easyPool = valid.filter((c) => c.population >= POP_EASY_MIN);
+  const mediumPool = valid.filter(
+    (c) => c.population >= POP_MED_MIN && c.population < POP_EASY_MIN
+  );
+  const hardPool = valid.filter((c) => c.population < POP_MED_MIN);
+
+  // Öncelik sırası modu göre
+  let priority;
+  if (mode === "easy") priority = [easyPool, mediumPool, hardPool];
+  else if (mode === "hard") priority = [hardPool, mediumPool, easyPool];
+  else priority = [mediumPool, easyPool, hardPool]; // default: medium
+
+  // Havuzlardan sırayla örnekle, toplam 10 benzersiz ülke
+  const picked = [];
+  const seen = new Set();
+
+  for (const pool of priority) {
+    const remaining = pool.filter((c) => !seen.has(c.cca2));
+    const take = Math.min(10 - picked.length, remaining.length);
+    if (take > 0) {
+      const chunk = sampleK(remaining, take);
+      chunk.forEach((c) => {
+        picked.push(c);
+        seen.add(c.cca2);
+      });
+    }
+    if (picked.length >= 10) break;
+  }
+
+  // Hâlâ 10’dan az ise tüm valid’den tamamla (çok küçük veri seti vb.)
+  if (picked.length < 10) {
+    const filler = sampleK(
+      valid.filter((c) => !seen.has(c.cca2)),
+      10 - picked.length
+    );
+    filler.forEach((c) => {
+      picked.push(c);
+      seen.add(c.cca2);
+    });
+  }
+
+  return picked.slice(0, 10);
 }
 
-const modeSel = document.getElementById("mode");
+// ---------- DOM ----------
+const modeButtonsWrap = document.getElementById("modeButtons");
 const startBtn = document.getElementById("startBtn");
 const restartBtn = document.getElementById("restartBtn");
 
@@ -133,28 +188,15 @@ const correctName = document.getElementById("correctName");
 const correctCapital = document.getElementById("correctCapital");
 const correctPopulation = document.getElementById("correctPopulation");
 
+// ---------- Oyun durumu ----------
 let allCountries = [];
 let picks = [];
 let idx = -1;
 let totalScore = 0;
-let mode = "medium";
+let mode = localStorage.getItem(LS_LAST_MODE) || "medium";
 let perQuestion = [];
 
-async function fetchCountries() {
-  const res = await fetch(LIST_URL);
-  if (!res.ok) throw new Error("REST Countries alınamadı: " + res.status);
-  const data = await res.json();
-  return data
-    .map((c) => ({
-      cca2: c.cca2,
-      name: c.name?.common ?? "",
-      capital: Array.isArray(c.capital) && c.capital.length ? c.capital[0] : "",
-      population: Number(c.population) || 0,
-      flag: c.flags?.png || c.flags?.svg || "",
-    }))
-    .filter((c) => c.cca2 && c.name && c.flag);
-}
-
+// ---------- UI yardımcıları ----------
 function setQuizEnabled(enabled) {
   nameInput.disabled = !enabled;
   capitalInput.disabled = !enabled;
@@ -186,7 +228,85 @@ function hideCorrectCard() {
   correctCapital.textContent = "";
   correctPopulation.textContent = "";
 }
+function markActiveModeButton() {
+  const btns = modeButtonsWrap.querySelectorAll(".mode-btn");
+  btns.forEach((b) => {
+    b.classList.toggle("active", b.dataset.mode === mode);
+  });
+}
 
+// ---------- Tarih/Yardımcılar ----------
+function fmtDate(s) {
+  try {
+    return new Date(s).toLocaleString("tr-TR");
+  } catch {
+    return s || "-";
+  }
+}
+
+// ---------- Son 10 oyun (kullanıcı) ----------
+function renderLast10(username) {
+  const host = document.getElementById("last10");
+  if (!host) return;
+
+  const games = readUserGames(username) || [];
+
+  games.sort((a, b) => {
+    const ta = new Date(a.playedAt).getTime() || 0;
+    const tb = new Date(b.playedAt).getTime() || 0;
+    return tb - ta;
+  });
+
+  const last10 = games.slice(0, 10);
+
+  if (!last10.length) {
+    host.innerHTML = "<p>Henüz oyun geçmişi yok.</p>";
+    return;
+  }
+
+  const html = [
+    "<table border='1' cellpadding='6'>",
+    "<thead><tr><th>#</th><th>Tarih</th><th>Mod</th><th>Skor</th></tr></thead>",
+    "<tbody>",
+    ...last10.map((g, i) => {
+      const modeLabel =
+        g.mode === "easy" ? "Kolay" : g.mode === "hard" ? "Zor" : "Orta";
+      return `<tr>
+        <td>${i + 1}</td>
+        <td>${fmtDate(g.playedAt)}</td>
+        <td>${modeLabel}</td>
+        <td>${g.totalScore}</td>
+      </tr>`;
+    }),
+    "</tbody>",
+    "</table>",
+  ].join("");
+
+  host.innerHTML = html;
+}
+function showLast10Section(show) {
+  const sec = document.getElementById("last10Section");
+  if (!sec) return;
+  sec.style.display = show ? "block" : "none";
+}
+
+// ---------- Veri çekme ----------
+async function fetchCountries() {
+  const res = await fetch(LIST_URL);
+  if (!res.ok) throw new Error("REST Countries alınamadı: " + res.status);
+  const data = await res.json();
+  return data
+    .map((c) => ({
+      cca2: c.cca2,
+      name: c.name?.common ?? "",
+      capital: Array.isArray(c.capital) && c.capital.length ? c.capital[0] : "",
+      population: Number(c.population) || 0,
+      flag: c.flags?.png || c.flags?.svg || "",
+    }))
+    .filter((c) => c.cca2 && c.name && c.flag);
+}
+
+// ---------- Oyun akışı ----------
 function renderQuestion() {
   const c = picks[idx];
   flagImg.src = c.flag;
@@ -210,32 +330,42 @@ async function startGame() {
     return;
   }
 
-  startBtn.disabled = true;
-  restartBtn.disabled = true;
-  submitBtn.disabled = true;
-  nextBtn.disabled = true;
-  feedbackEl.textContent = "Yükleniyor...";
+  showLast10Section(false); // yeni oyunda geçmişi gizle
 
-  mode = modeSel.value || "choice";
+  // UI kilitle
+  [startBtn, restartBtn, submitBtn, nextBtn].forEach(
+    (b) => (b.disabled = true)
+  );
+  feedbackEl.textContent = "Yükleniyor...";
 
   try {
     if (!allCountries.length) {
       allCountries = await fetchCountries();
     }
+
+    // 10 ülke seç
     picks = pick10ByDifficulty(allCountries, mode);
+
+    writeJSON(LS_LAST_GAME, {
+      mode,
+      savedAt: new Date().toISOString(),
+      countries: picks,
+    });
+
+    // oyun state reset
     idx = 0;
     totalScore = 0;
     perQuestion = [];
 
     feedbackEl.textContent = "";
     playArea.style.display = "block";
-    modeSel.disabled = true;
 
     renderQuestion();
     restartBtn.disabled = false;
   } catch (err) {
     feedbackEl.textContent = "Hata: " + (err?.message || err);
-    startBtn.disabled = false;
+  } finally {
+    startBtn.disabled = false; // başlat tekrar aktif
   }
 }
 
@@ -253,7 +383,6 @@ function checkAnswer(e) {
   const gained = scoreFor({ nameOK, capitalOK, populationOK });
   totalScore += gained;
 
-  const popTR = Number(c.population).toLocaleString("tr-TR");
   feedbackEl.innerHTML = `Sonuç: [Ad ${nameOK ? "✓" : "✗"}] [Başkent ${
     capitalOK ? "✓" : "✗"
   }] [Nüfus ${populationOK ? "✓" : "✗"}] (+${gained})`;
@@ -317,24 +446,32 @@ function endGame() {
   feedbackEl.innerHTML = `<strong>Tur bitti.</strong> Toplam skor: ${totalScore}. Mod: ${mode}.`;
   submitBtn.disabled = true;
   nextBtn.disabled = true;
-  startBtn.disabled = false;
-  modeSel.disabled = false;
   hideCorrectCard();
-  playArea.style.display = "none"; // oyun alanını kapat
+  playArea.style.display = "none";
   renderStatus();
+
+  // Oyun biter bitmez son 10 oyunu göster
+  showLast10Section(true);
+  renderLast10(username);
 }
 
-modeSel.addEventListener("change", () => {
-  startBtn.disabled = false;
+// ---------- Zorluk butonları ----------
+modeButtonsWrap.addEventListener("click", (e) => {
+  const btn = e.target.closest(".mode-btn");
+  if (!btn) return;
+  mode = btn.dataset.mode; // easy | medium | hard
+  localStorage.setItem(LS_LAST_MODE, mode);
+  // görsel aktiflik için class ekliyorsan burada yönetebilirsin (CSS’siz de çalışır)
 });
 
+// ---------- Olay bağlama ----------
 startBtn.addEventListener("click", startGame);
 form.addEventListener("submit", checkAnswer);
 nextBtn.addEventListener("click", nextQuestion);
 restartBtn.addEventListener("click", startGame);
 
+// ---------- İlk kurulum ----------
 setQuizEnabled(false);
 submitBtn.disabled = true;
 nextBtn.disabled = true;
 renderStatus();
-startBtn.disabled = true;

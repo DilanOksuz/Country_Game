@@ -1,11 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Best 10 Score</title>
+    <title>SCOREBOARD</title>
   </head>
   <body>
-    <button onclick="window.location.href=`Home_Page.html`">GERİ</button>
+    <h1>SCOREBOARD</h1>
+
+    <div id="modeButtons">
+      <button data-mode="easy">Kolay</button>
+      <button data-mode="medium">Orta</button>
+      <button data-mode="hard">Zor</button>
+    </div>
+
+    <div id="scoreboard"></div>
+
+    <p>
+      <button onclick="window.location.href='Home_Page.html'">GERİ</button>
+    </p>
+
+    <script src="public_scoreboard.js"></script>
   </body>
 </html>
