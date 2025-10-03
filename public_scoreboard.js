@@ -1,7 +1,6 @@
 const LS_USERS = "users";
 const LS_LAST_MODE = "cg:lastMode";
 
-// --------- helpers ----------
 function readJSON(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -10,30 +9,76 @@ function readJSON(key, fallback) {
     return fallback;
   }
 }
+
+function safeNumber(x, def = 0) {
+  const n = Number(x);
+  return Number.isFinite(n) ? n : def;
+}
+
 function normalizeUserStats(u) {
-  const s = u.stats || {};
+  const s = (u && u.stats) || {};
   const best = s.best || {};
   const gp = s.gamesPlayed || {};
   return {
     ...u,
+    username: String(u?.username ?? "").trim(),
+    createdAt: u?.createdAt || "",
     stats: {
       best: {
-        easy: Number.isFinite(best.easy) ? best.easy : 0,
-        medium: Number.isFinite(best.medium) ? best.medium : 0,
-        hard: Number.isFinite(best.hard) ? best.hard : 0,
+        easy: safeNumber(best.easy, 0),
+        medium: safeNumber(best.medium, 0),
+        hard: safeNumber(best.hard, 0),
       },
       gamesPlayed: {
-        easy: Number.isFinite(gp.easy) ? gp.easy : 0,
-        medium: Number.isFinite(gp.medium) ? gp.medium : 0,
-        hard: Number.isFinite(gp.hard) ? gp.hard : 0,
+        easy: safeNumber(gp.easy, 0),
+        medium: safeNumber(gp.medium, 0),
+        hard: safeNumber(gp.hard, 0),
       },
     },
   };
 }
+
 function readUsers() {
   const arr = readJSON(LS_USERS, []);
-  return (arr || []).map(normalizeUserStats);
+  return (Array.isArray(arr) ? arr : []).map(normalizeUserStats);
 }
+
+function dedupeUsers(users) {
+  const map = new Map();
+  for (const u of users) {
+    const key = u.username.toLowerCase();
+    const prev = map.get(key);
+    if (!prev) {
+      map.set(key, u);
+      continue;
+    }
+    const merged = { ...prev };
+    merged.stats.best.easy = Math.max(prev.stats.best.easy, u.stats.best.easy);
+    merged.stats.best.medium = Math.max(
+      prev.stats.best.medium,
+      u.stats.best.medium
+    );
+    merged.stats.best.hard = Math.max(prev.stats.best.hard, u.stats.best.hard);
+    merged.stats.gamesPlayed.easy = Math.max(
+      prev.stats.gamesPlayed.easy,
+      u.stats.gamesPlayed.easy
+    );
+    merged.stats.gamesPlayed.medium = Math.max(
+      prev.stats.gamesPlayed.medium,
+      u.stats.gamesPlayed.medium
+    );
+    merged.stats.gamesPlayed.hard = Math.max(
+      prev.stats.gamesPlayed.hard,
+      u.stats.gamesPlayed.hard
+    );
+    const tPrev = new Date(prev.createdAt || 0).getTime() || 0;
+    const tCur = new Date(u.createdAt || 0).getTime() || 0;
+    if (tCur > tPrev) merged.createdAt = u.createdAt;
+    map.set(key, merged);
+  }
+  return Array.from(map.values());
+}
+
 function escapeHtml(s) {
   return String(s)
     .replaceAll("&", "&amp;")
@@ -43,44 +88,44 @@ function escapeHtml(s) {
     .replaceAll("'", "&#039;");
 }
 
-// --------- DOM refs ----------
 const modeButtonsWrap = document.getElementById("modeButtons");
 const scoreboardEl = document.getElementById("scoreboard");
 
-// remember last choice
-let mode = localStorage.getItem(LS_LAST_MODE) || "medium";
-
-// initial render
-render(mode);
-
-// mode buttons
-modeButtonsWrap.addEventListener("click", (e) => {
-  const btn = e.target.closest("button[data-mode]");
-  if (!btn) return;
-  mode = btn.dataset.mode; // "easy" | "medium" | "hard"
-  localStorage.setItem(LS_LAST_MODE, mode);
+if (modeButtonsWrap && scoreboardEl) {
+  let mode = localStorage.getItem(LS_LAST_MODE) || "medium";
   render(mode);
-});
 
-// --------- render ----------
+  modeButtonsWrap.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-mode]");
+    if (!btn) return;
+    mode = btn.dataset.mode;
+    localStorage.setItem(LS_LAST_MODE, mode);
+    render(mode);
+  });
+}
+
 function render(selectedMode) {
-  const users = readUsers();
+  const users = dedupeUsers(readUsers());
 
-  const rows = users
-    .map((u) => {
-      const score = u.stats?.best?.[selectedMode] ?? 0;
-      const played = u.stats?.gamesPlayed?.[selectedMode] ?? 0;
-      return {
-        username: u.username,
-        best: Number(score) || 0,
-        played: Number(played) || 0,
-      };
-    })
-    .filter((r) => r.best > 0);
+  let rows = users.map((u) => {
+    const best = safeNumber(u.stats?.best?.[selectedMode], 0);
+    const played = safeNumber(u.stats?.gamesPlayed?.[selectedMode], 0); // sadece sıralama için
+    return {
+      username: u.username || "-",
+      best,
+      played,
+      createdAt: u.createdAt || "",
+    };
+  });
+
+  rows = rows.filter((r) => r.best > 0);
 
   rows.sort((a, b) => {
     if (b.best !== a.best) return b.best - a.best;
     if (b.played !== a.played) return b.played - a.played;
+    const ta = new Date(a.createdAt || 0).getTime() || 0;
+    const tb = new Date(b.createdAt || 0).getTime() || 0;
+    if (tb !== ta) return tb - ta;
     return a.username.localeCompare(b.username, "tr");
   });
 
@@ -91,19 +136,24 @@ function render(selectedMode) {
     return;
   }
 
-  const table = [
+  const html = [
     "<table border='1' cellpadding='6'>",
-    "<thead><tr><th>#</th><th>Kullanıcı</th><th>En İyi Skor</th><th>Oynanan (Mod)</th></tr></thead>",
+    "<thead><tr>",
+    "<th>#</th>",
+    "<th>Kullanıcı</th>",
+    "<th>En İyi Skor</th>",
+    "</tr></thead>",
     "<tbody>",
     ...top.map(
       (r, i) =>
-        `<tr><td>${i + 1}</td><td>${escapeHtml(r.username)}</td><td>${
-          r.best
-        }</td><td>${r.played}</td></tr>`
+        `<tr>
+          <td>${i + 1}</td>
+          <td>${escapeHtml(r.username)}</td>
+          <td>${r.best}</td>
+        </tr>`
     ),
-    "</tbody>",
-    "</table>",
+    "</tbody></table>",
   ].join("");
 
-  scoreboardEl.innerHTML = table;
+  scoreboardEl.innerHTML = html;
 }

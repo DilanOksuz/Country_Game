@@ -1,7 +1,6 @@
 const STORAGE_KEY = "users";
 const REDIRECT_URL = "Home_Page.html";
 
-// ---- Stats şablonu & migrasyon yardımcıları ----
 function defaultStats() {
   return {
     best: { easy: 0, medium: 0, hard: 0 },
@@ -160,7 +159,6 @@ loginForm.addEventListener("submit", async (e) => {
     return;
   }
 
-  // Aktif kullanıcıyı kaydet
   localStorage.setItem("current_user", user.username);
 
   const url = new URL(REDIRECT_URL, window.location.href);
@@ -168,9 +166,6 @@ loginForm.addEventListener("submit", async (e) => {
   window.location.href = url.toString();
 });
 
-// ---- Oyun bittiğinde çağıracağın yardımcı: mod-bazlı en iyi skor güncellemesi ----
-// Bunu Game sayfana da kopyalayıp, turun sonunda çağıracaksın:
-//   updateBestScore(currentUsername, "easy"|"medium"|"hard", totalScore);
 function updateBestScore(username, mode, score) {
   const valid = ["easy", "medium", "hard"];
   if (!valid.includes(mode)) throw new Error("Geçersiz mod: " + mode);

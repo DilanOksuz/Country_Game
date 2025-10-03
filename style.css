@@ -1,0 +1,35 @@
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #fefefe;
+  font-family: Arial, sans-serif;
+  /* Arka plan resmi */
+  background-image: url("websitesi_arka_plan.webp");
+  background-size: cover; /* ekranı tamamen kapla */
+  background-position: center; /* ortala */
+  background-repeat: no-repeat; /* tekrar etme */
+}
+
+.create-user-button,
+.select-user-button {
+  margin: 10px;
+}
+
+button {
+  padding: 12px 24px;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background-color: #736c66;
+  color: white;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #403f3e;
+}
