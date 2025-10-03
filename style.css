@@ -7,16 +7,19 @@ body {
   align-items: center;
   background-color: #fefefe;
   font-family: Arial, sans-serif;
-  /* Arka plan resmi */
   background-image: url("websitesi_arka_plan.webp");
-  background-size: cover; /* ekranı tamamen kapla */
-  background-position: center; /* ortala */
-  background-repeat: no-repeat; /* tekrar etme */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .create-user-button,
 .select-user-button {
   margin: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 200px;
 }
 
 button {

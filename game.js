@@ -107,13 +107,10 @@ function sampleK(arr, k) {
   return a.slice(0, Math.min(k, a.length));
 }
 
-// ---------- Nüfusa göre zorluk eşikleri ----------
-const POP_EASY_MIN = 50_000_000; // Kolay: ≥ 50M
-const POP_MED_MIN = 1_000_000; // Orta: 1M – 49,999,999
-// Zor: < 1M
+const POP_EASY_MIN = 50_000_000;
+const POP_MED_MIN = 1_000_000;
 
 function pick10ByDifficulty(countries, mode) {
-  // Geçersiz/0 nüfusluları süz
   const valid = countries.filter(
     (c) => Number.isFinite(c.population) && c.population > 0
   );
@@ -124,13 +121,11 @@ function pick10ByDifficulty(countries, mode) {
   );
   const hardPool = valid.filter((c) => c.population < POP_MED_MIN);
 
-  // Öncelik sırası modu göre
   let priority;
   if (mode === "easy") priority = [easyPool, mediumPool, hardPool];
   else if (mode === "hard") priority = [hardPool, mediumPool, easyPool];
-  else priority = [mediumPool, easyPool, hardPool]; // default: medium
+  else priority = [mediumPool, easyPool, hardPool];
 
-  // Havuzlardan sırayla örnekle, toplam 10 benzersiz ülke
   const picked = [];
   const seen = new Set();
 
@@ -147,7 +142,6 @@ function pick10ByDifficulty(countries, mode) {
     if (picked.length >= 10) break;
   }
 
-  // Hâlâ 10’dan az ise tüm valid’den tamamla (çok küçük veri seti vb.)
   if (picked.length < 10) {
     const filler = sampleK(
       valid.filter((c) => !seen.has(c.cca2)),
@@ -188,7 +182,6 @@ const correctName = document.getElementById("correctName");
 const correctCapital = document.getElementById("correctCapital");
 const correctPopulation = document.getElementById("correctPopulation");
 
-// ---------- Oyun durumu ----------
 let allCountries = [];
 let picks = [];
 let idx = -1;
@@ -196,7 +189,6 @@ let totalScore = 0;
 let mode = localStorage.getItem(LS_LAST_MODE) || "medium";
 let perQuestion = [];
 
-// ---------- UI yardımcıları ----------
 function setQuizEnabled(enabled) {
   nameInput.disabled = !enabled;
   capitalInput.disabled = !enabled;
@@ -235,7 +227,6 @@ function markActiveModeButton() {
   });
 }
 
-// ---------- Tarih/Yardımcılar ----------
 function fmtDate(s) {
   try {
     return new Date(s).toLocaleString("tr-TR");
@@ -244,7 +235,6 @@ function fmtDate(s) {
   }
 }
 
-// ---------- Son 10 oyun (kullanıcı) ----------
 function renderLast10(username) {
   const host = document.getElementById("last10");
   if (!host) return;
@@ -290,7 +280,6 @@ function showLast10Section(show) {
   sec.style.display = show ? "block" : "none";
 }
 
-// ---------- Veri çekme ----------
 async function fetchCountries() {
   const res = await fetch(LIST_URL);
   if (!res.ok) throw new Error("REST Countries alınamadı: " + res.status);
@@ -306,7 +295,6 @@ async function fetchCountries() {
     .filter((c) => c.cca2 && c.name && c.flag);
 }
 
-// ---------- Oyun akışı ----------
 function renderQuestion() {
   const c = picks[idx];
   flagImg.src = c.flag;
@@ -330,9 +318,8 @@ async function startGame() {
     return;
   }
 
-  showLast10Section(false); // yeni oyunda geçmişi gizle
+  showLast10Section(false);
 
-  // UI kilitle
   [startBtn, restartBtn, submitBtn, nextBtn].forEach(
     (b) => (b.disabled = true)
   );
@@ -450,27 +437,22 @@ function endGame() {
   playArea.style.display = "none";
   renderStatus();
 
-  // Oyun biter bitmez son 10 oyunu göster
   showLast10Section(true);
   renderLast10(username);
 }
 
-// ---------- Zorluk butonları ----------
 modeButtonsWrap.addEventListener("click", (e) => {
   const btn = e.target.closest(".mode-btn");
   if (!btn) return;
-  mode = btn.dataset.mode; // easy | medium | hard
+  mode = btn.dataset.mode;
   localStorage.setItem(LS_LAST_MODE, mode);
-  // görsel aktiflik için class ekliyorsan burada yönetebilirsin (CSS’siz de çalışır)
 });
 
-// ---------- Olay bağlama ----------
 startBtn.addEventListener("click", startGame);
 form.addEventListener("submit", checkAnswer);
 nextBtn.addEventListener("click", nextQuestion);
 restartBtn.addEventListener("click", startGame);
 
-// ---------- İlk kurulum ----------
 setQuizEnabled(false);
 submitBtn.disabled = true;
 nextBtn.disabled = true;

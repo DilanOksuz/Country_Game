@@ -1,3 +1,5 @@
+// public_scoreboard.js
+
 const LS_USERS = "users";
 const LS_LAST_MODE = "cg:lastMode";
 
@@ -46,7 +48,7 @@ function readUsers() {
 function dedupeUsers(users) {
   const map = new Map();
   for (const u of users) {
-    const key = u.username.toLowerCase();
+    const key = (u.username || "").toLowerCase();
     const prev = map.get(key);
     if (!prev) {
       map.set(key, u);
@@ -59,6 +61,7 @@ function dedupeUsers(users) {
       u.stats.best.medium
     );
     merged.stats.best.hard = Math.max(prev.stats.best.hard, u.stats.best.hard);
+
     merged.stats.gamesPlayed.easy = Math.max(
       prev.stats.gamesPlayed.easy,
       u.stats.gamesPlayed.easy
@@ -71,9 +74,11 @@ function dedupeUsers(users) {
       prev.stats.gamesPlayed.hard,
       u.stats.gamesPlayed.hard
     );
+
     const tPrev = new Date(prev.createdAt || 0).getTime() || 0;
     const tCur = new Date(u.createdAt || 0).getTime() || 0;
     if (tCur > tPrev) merged.createdAt = u.createdAt;
+
     map.set(key, merged);
   }
   return Array.from(map.values());
@@ -93,6 +98,7 @@ const scoreboardEl = document.getElementById("scoreboard");
 
 if (modeButtonsWrap && scoreboardEl) {
   let mode = localStorage.getItem(LS_LAST_MODE) || "medium";
+  setActiveModeButton(mode);
   render(mode);
 
   modeButtonsWrap.addEventListener("click", (e) => {
@@ -100,7 +106,16 @@ if (modeButtonsWrap && scoreboardEl) {
     if (!btn) return;
     mode = btn.dataset.mode;
     localStorage.setItem(LS_LAST_MODE, mode);
+    setActiveModeButton(mode);
     render(mode);
+  });
+}
+
+function setActiveModeButton(mode) {
+  const btns = modeButtonsWrap.querySelectorAll("button[data-mode]");
+  btns.forEach((b) => {
+    if (b.dataset.mode === mode) b.classList.add("active");
+    else b.classList.remove("active");
   });
 }
 
@@ -109,7 +124,7 @@ function render(selectedMode) {
 
   let rows = users.map((u) => {
     const best = safeNumber(u.stats?.best?.[selectedMode], 0);
-    const played = safeNumber(u.stats?.gamesPlayed?.[selectedMode], 0); // sadece sıralama için
+    const played = safeNumber(u.stats?.gamesPlayed?.[selectedMode], 0);
     return {
       username: u.username || "-",
       best,
@@ -137,22 +152,16 @@ function render(selectedMode) {
   }
 
   const html = [
-    "<table border='1' cellpadding='6'>",
-    "<thead><tr>",
-    "<th>#</th>",
-    "<th>Kullanıcı</th>",
-    "<th>En İyi Skor</th>",
-    "</tr></thead>",
-    "<tbody>",
+    "<ul class='score-list'>",
     ...top.map(
       (r, i) =>
-        `<tr>
-          <td>${i + 1}</td>
-          <td>${escapeHtml(r.username)}</td>
-          <td>${r.best}</td>
-        </tr>`
+        `<li>
+          <span class="rank">#${i + 1}</span>
+          <span class="user">${escapeHtml(r.username)}</span>
+          <span class="score">${r.best}</span>
+        </li>`
     ),
-    "</tbody></table>",
+    "</ul>",
   ].join("");
 
   scoreboardEl.innerHTML = html;

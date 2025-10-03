@@ -1,6 +1,7 @@
 const STORAGE_KEY = "users";
 const REDIRECT_URL = "Home_Page.html";
 
+// -------- Helpers --------
 function defaultStats() {
   return {
     best: { easy: 0, medium: 0, hard: 0 },
@@ -36,9 +37,7 @@ function saveUsers(users) {
 function readUsers() {
   try {
     const raw = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    // Migrasyon: stats eksikse tamamla
     const fixed = raw.map((u) => normalizeUserStats(u));
-    // (İsteğe bağlı) geri yaz: veriyi normalize halde saklamak istersen
     saveUsers(fixed);
     return fixed;
   } catch {
@@ -61,10 +60,12 @@ function findUserByName(users, name) {
   return users.find((u) => u.username.toLowerCase() === n) || null;
 }
 
+// -------- DOM --------
 const searchInput = document.getElementById("searchInput");
 const userList = document.getElementById("userList");
 const emptyState = document.getElementById("emptyState");
 
+const loginCard = document.getElementById("loginCard");
 const loginForm = document.getElementById("loginForm");
 const selectedUserLabel = document.getElementById("selectedUserLabel");
 const passwordInput = document.getElementById("passwordInput");
@@ -72,9 +73,27 @@ const togglePwBtn = document.getElementById("togglePwBtn");
 const loginBtn = document.getElementById("loginBtn");
 const backBtn = document.getElementById("backBtn");
 
+// -------- State --------
 let allUsers = [];
 let filteredUsers = [];
 let selectedUsername = null;
+
+// -------- UI helpers --------
+// Sadece 'is-open' sınıfını kullanıyoruz (CSS'in zaten hazır)
+function showLoginCard(show) {
+  loginCard.classList.toggle("is-open", !!show);
+  loginCard.setAttribute("aria-hidden", String(!show));
+  passwordInput.disabled = !show;
+  loginBtn.disabled = !show;
+
+  if (show) {
+    setTimeout(() => passwordInput.focus(), 0);
+  } else {
+    passwordInput.value = "";
+    selectedUserLabel.textContent = "—";
+    selectedUsername = null;
+  }
+}
 
 function renderList(list) {
   userList.innerHTML = "";
@@ -88,35 +107,38 @@ function renderList(list) {
   list.forEach((u) => {
     const li = document.createElement("li");
 
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.textContent = u.username;
-    btn.dataset.username = u.username;
+    // <li> tıklanabilir olsun ya da istersen içine button koyabilirsin
+    li.textContent = u.username;
+    li.tabIndex = 0;
 
-    btn.addEventListener("click", () => {
+    const handleSelect = () => {
       selectedUsername = u.username;
       selectedUserLabel.textContent = selectedUsername;
-      loginBtn.disabled = false;
-      passwordInput.focus();
+      showLoginCard(true); // kartı aç
+      loginCard.scrollIntoView({ behavior: "smooth", block: "center" });
+    };
+
+    li.addEventListener("click", handleSelect);
+    li.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        handleSelect();
+      }
     });
 
-    li.appendChild(btn);
     userList.appendChild(li);
   });
 }
 
 function applyFilter() {
   const q = searchInput.value.trim().toLowerCase();
-  if (!q) {
-    filteredUsers = [...allUsers];
-  } else {
-    filteredUsers = allUsers.filter((u) =>
-      u.username.toLowerCase().includes(q)
-    );
-  }
+  filteredUsers = !q
+    ? [...allUsers]
+    : allUsers.filter((u) => u.username.toLowerCase().includes(q));
   renderList(filteredUsers);
 }
 
+// -------- Events --------
 togglePwBtn.addEventListener("click", () => {
   if (passwordInput.type === "password") {
     passwordInput.type = "text";
@@ -130,6 +152,9 @@ togglePwBtn.addEventListener("click", () => {
 });
 
 backBtn.addEventListener("click", () => {
+  // Sadece kartı kapatmak istersen:
+  // showLoginCard(false);
+  // Geri sayfasına dönmek istersen:
   window.location.href = "Login_Page.html";
 });
 
@@ -160,7 +185,6 @@ loginForm.addEventListener("submit", async (e) => {
   }
 
   localStorage.setItem("current_user", user.username);
-
   const url = new URL(REDIRECT_URL, window.location.href);
   url.searchParams.set("user", user.username);
   window.location.href = url.toString();
@@ -176,12 +200,10 @@ function updateBestScore(username, mode, score) {
   );
   if (idx === -1) return false;
 
-  const u = normalizeUserStats(users[idx]); // stats garanti olsun
-  // En iyi skor
+  const u = normalizeUserStats(users[idx]);
   if (typeof score === "number" && score > (u.stats.best[mode] ?? 0)) {
     u.stats.best[mode] = score;
   }
-  // Oynanan oyun sayısı (mod-bazlı)
   u.stats.gamesPlayed[mode] = (u.stats.gamesPlayed[mode] ?? 0) + 1;
 
   users[idx] = u;
@@ -194,9 +216,7 @@ function updateBestScore(username, mode, score) {
   filteredUsers = [...allUsers];
   renderList(filteredUsers);
 
-  const hasUsers = allUsers.length > 0;
-  loginBtn.disabled = !hasUsers;
-  passwordInput.disabled = !hasUsers;
+  showLoginCard(false);
 
   searchInput.addEventListener("input", applyFilter);
 })();

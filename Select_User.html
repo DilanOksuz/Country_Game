@@ -7,46 +7,71 @@
     <link rel="stylesheet" href="select-user.css" />
   </head>
   <body>
-    <h3>Kullanıcı Seç</h3>
+    <main class="page">
+      <h3>Kullanıcı Seç</h3>
 
-    <!-- Arama -->
-    <label>
-      Kullanıcı Ara:
-      <input
-        id="searchInput"
-        type="text"
-        placeholder="İsim yazın..."
-        autocomplete="off"
-      />
-    </label>
-
-    <!-- Kullanıcı listesi -->
-    <ul id="userList"></ul>
-
-    <button onclick="window.location.href=`Create_User.html`">KAYIT OL</button>
-
-    <!-- Giriş bölümü (seçim yapınca etkinleşir) -->
-    <form id="loginForm" autocomplete="off">
-      <p>Seçilen kullanıcı: <strong id="selectedUserLabel">—</strong></p>
-
-      <label>
-        Şifre:
+      <!-- Arama -->
+      <label class="search">
+        <span>Kullanıcı Ara:</span>
         <input
-          type="password"
-          id="passwordInput"
-          placeholder="Şifre"
-          required
+          id="searchInput"
+          type="text"
+          placeholder="İsim yazın..."
+          autocomplete="off"
         />
-        <button type="button" id="togglePwBtn">Göster</button>
       </label>
 
-      <div>
-        <button type="submit" id="loginBtn" disabled>Giriş Yap</button>
-        <button type="button" id="backBtn">Geri</button>
-      </div>
-    </form>
+      <!-- Kullanıcı listesi (hep görünür) -->
+      <ul id="userList" class="user-list" aria-label="Kullanıcılar"></ul>
+      <p id="emptyState" class="muted" hidden>
+        Henüz kayıtlı kullanıcı bulunamadı.
+      </p>
 
-    <p id="emptyState" hidden>Henüz kayıtlı kullanıcı bulunamadı.</p>
+      <div class="actions">
+        <button
+          type="button"
+          class="secondary"
+          onclick="window.location.href='Create_User.html'"
+        >
+          KAYIT OL
+        </button>
+      </div>
+
+      <!-- Giriş Kartı (başlangıçta kapalı; CSS bunu kapalı yapıyor) -->
+      <section id="loginCard" class="card" aria-hidden="true">
+        <form id="loginForm" autocomplete="off">
+          <header class="card-header">
+            <h4>Giriş Yap</h4>
+            <p class="muted">
+              Seçilen kullanıcı: <strong id="selectedUserLabel">—</strong>
+            </p>
+          </header>
+
+          <label class="field">
+            <span>Şifre</span>
+            <div class="pw-row">
+              <input
+                type="password"
+                id="passwordInput"
+                placeholder="Şifre"
+                required
+                disabled
+              />
+              <button type="button" id="togglePwBtn" class="ghost">
+                Göster
+              </button>
+            </div>
+          </label>
+
+          <div class="card-actions">
+            <button type="submit" id="loginBtn" class="primary" disabled>
+              Giriş Yap
+            </button>
+            <button type="button" id="backBtn" class="secondary">Geri</button>
+          </div>
+        </form>
+      </section>
+    </main>
 
     <script src="select_user.js"></script>
   </body>

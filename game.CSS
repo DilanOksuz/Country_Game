@@ -1,0 +1,52 @@
+body {
+  margin: 0;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  color: #403f3e;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-image: url("websitesi_arka_plan.webp");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #f2f2f2;
+  background-blend-mode: lighten;
+}
+
+#modeButtons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+#modeButtons button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  background: #d8d9d7;
+  color: #403f3e;
+  transition: background 0.25s ease, transform 0.1s ease;
+}
+
+#modeButtons button:hover {
+  background: #a6a6a4;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+#modeButtons button.active {
+  background: #403f3e;
+  color: #fff;
+}
+
+#backBtn {
+  background-color: #a6a6a4;
+  color: #fff;
+}
+#backBtn:hover {
+  background-color: #736c66;
+}
